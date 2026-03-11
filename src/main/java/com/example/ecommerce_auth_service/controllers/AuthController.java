@@ -19,13 +19,13 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // Register a new user with role (USER or ADMIN)
+    // Register a new user with role (USER or ROLE_ADMIN)
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> register(@RequestBody @Valid RegisterRequestDto registerRequestDto) {
 
         // Default role to USER if not provided
         if (registerRequestDto.getRole() == null) {
-            registerRequestDto.setRole(Role.USER);
+            registerRequestDto.setRole(Role.ROLE_USER);
         }
 
         AuthResponseDto response = authService.register(registerRequestDto);

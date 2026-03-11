@@ -43,9 +43,9 @@ public class AuthServiceImpl implements AuthService {
             throw new UserAlreadyExistsException("User already exists with this email");
         }
 
-        // Prevent users from registering as ADMIN
-        if (registerRequestDto.getRole() == Role.ADMIN) {
-            logger.warn("Attempt to register with ADMIN role for email: {}", registerRequestDto.getEmail());
+        // Prevent users from registering as ROLE_ADMIN
+        if (registerRequestDto.getRole() == Role.ROLE_ADMIN) {
+            logger.warn("Attempt to register with ROLE_ADMIN role for email: {}", registerRequestDto.getEmail());
             throw new RuntimeException("Cannot register as admin");
         }
 
