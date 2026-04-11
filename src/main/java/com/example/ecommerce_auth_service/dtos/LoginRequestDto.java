@@ -2,15 +2,13 @@ package com.example.ecommerce_auth_service.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class LoginRequestDto {
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email cannot be empty")

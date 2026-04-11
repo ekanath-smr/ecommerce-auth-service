@@ -3,9 +3,12 @@ package com.example.ecommerce_auth_service.models;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -13,12 +16,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "users")
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(name = "users", indexes = { @Index(name = "idx_user_email", columnList = "email") } )
+public class User extends BaseModel {
 
     @Email
     @NotBlank
@@ -26,18 +25,16 @@ public class User {
     private String email;
 
     @NotBlank
+    @Size(min = 8)
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    @ManyToMany
+    @JoinTable(
+            name = "users_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles;
 
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    public void setCreatedAt() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

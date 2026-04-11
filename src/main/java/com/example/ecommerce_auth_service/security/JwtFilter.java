@@ -1,10 +1,14 @@
 package com.example.ecommerce_auth_service.security;
 
+import com.example.ecommerce_auth_service.services.TokenBlacklistService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,42 +21,61 @@ import java.io.IOException;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
+
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtFilter(JwtService jwtService, UserDetailsService userDetailsService,
+            TokenBlacklistService tokenBlacklistService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getServletPath().startsWith("/auth");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
+        String jwt = authHeader.substring(7);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userDetails = userDetailsService.loadUserByUsername(username);
-
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                var authToken = new UsernamePasswordAuthenticationToken (
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            // 1. Reject blacklisted tokens
+            if (tokenBlacklistService.isBlacklisted(jwt)) {
+                logger.warn("Blacklisted token used");
+                filterChain.doFilter(request, response);
+                return;
             }
+
+            // 2. Extract username
+            String username = jwtService.extractUsername(jwt);
+
+            // 3. Authenticate if not already authenticated
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var userDetails = userDetailsService.loadUserByUsername(username);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.debug("JWT validated for user {}", username);
+                }
+            }
+
+        } catch (JwtException | IllegalArgumentException e) {
+            logger.warn("Invalid JWT received");
         }
 
         filterChain.doFilter(request, response);

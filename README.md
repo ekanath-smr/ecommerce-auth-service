@@ -1,32 +1,34 @@
 # Ecommerce Auth Service
 
-A JWT-based Authentication Microservice built using Spring Boot and Spring Security for an e-commerce backend system.
+A production-style JWT Authentication & Authorization Microservice built using Spring Boot and Spring Security for an e-commerce microservices backend.
 
-This service provides secure user authentication, role-based authorization, and token-based access control for other microservices such as Product Service.
+Provides secure user registration, login, refresh token handling, logout with token blacklisting, and role-based access control for downstream services.
 
---------------------------------------------------
+---
 
 ## 🚀 Features
 
-- JWT Authentication
-- Role-Based Authorization (ADMIN / USER)
+- JWT Access Token Authentication
+- Refresh Token Support
+- Role-Based Authorization (USER / ADMIN)
 - Secure Password Hashing using BCrypt
-- Stateless Security Architecture
-- Custom UserDetails Implementation
+- Logout with Token Blacklisting
+- Stateless Spring Security Architecture
+- Custom JWT Authentication Filter
+- Custom AuthenticationEntryPoint & AccessDeniedHandler
 - Global Exception Handling
-- DTO Validation
-- Logging using SLF4J
-- API Documentation with Swagger UI
-- Application Monitoring with Spring Boot Actuator
-- Default Admin & User Initialization on Application Startup
-- Clean Layered Architecture
-- Unit Testing with Mockito
+- DTO Validation with Jakarta Validation
+- Structured Logging with SLF4J
+- Swagger / OpenAPI Documentation
+- Spring Boot Actuator Monitoring
+- Layered Clean Architecture
+- Unit Testing with JUnit 5 & Mockito
 
---------------------------------------------------
+---
 
 ## 🏗️ Tech Stack
 
-- Java
+- Java 17+
 - Spring Boot
 - Spring Security
 - JWT (JJWT)
@@ -36,228 +38,325 @@ This service provides secure user authentication, role-based authorization, and 
 - Lombok
 - Swagger / OpenAPI
 - Spring Boot Actuator
+- JUnit 5
+- Mockito
 
---------------------------------------------------
+---
 
 ## 📂 Project Structure
 
+```text
 ecommerce-auth-service
+│
+├── controllers
+│   └── AuthController
+│
+├── services
+│   ├── AuthService
+│   ├── AuthServiceImpl
+│   └── TokenBlacklistService
+│
+├── repositories
+│   ├── UserRepository
+│   └── RoleRepository
+│
+├── models
+│   ├── User
+│   └── Role
+│
+├── dtos
+│   ├── RegisterRequestDto
+│   ├── LoginRequestDto
+│   ├── RefreshTokenRequestDto
+│   └── AuthResponseDto
+│
+├── security
+│   ├── JwtService
+│   ├── JwtFilter
+│   ├── SecurityConfig
+│   ├── CustomUserDetails
+│   ├── CustomUserDetailsService
+│   ├── CustomAuthenticationEntryPoint
+│   └── CustomAccessDeniedHandler
+│
+├── exceptions
+│   ├── UserAlreadyExistsException
+│   ├── InvalidCredentialsException
+│   └── InvalidRoleException
+│
+└── advices
+    └── GlobalExceptionHandler
+```
 
-controllers  
-AuthController  
-TestController
-
-services  
-AuthService  
-AuthServiceImpl
-
-repositories  
-UserRepository
-
-models  
-User  
-Role
-
-dtos  
-RegisterRequestDto  
-LoginRequestDto  
-AuthResponseDto
-
-security  
-JwtService  
-JwtFilter  
-SecurityConfig  
-CustomUserDetails  
-CustomUserDetailsService  
-CustomAccessDeniedHandler
-
-config  
-DataInitializer
-PasswordEncoderConfig
-
-exceptions  
-UserAlreadyExistsException  
-InvalidCredentialsException
-
-controllerAdvices  
-GlobalExceptionHandler
-
---------------------------------------------------
+---
 
 ## 🔐 Authentication Flow
 
-1. User registers via `/auth/register`
+### Registration
+1. User sends request to `/auth/register`
 2. Password is encrypted using BCrypt
-3. User logs in using `/auth/login`
-4. Server validates credentials
-5. A JWT token is generated
-6. Client sends the token in request headers
+3. Roles are validated and assigned
+4. Access + Refresh tokens are generated
+5. Tokens returned to client
 
-Authorization: Bearer <JWT_TOKEN>
+---
 
-7. Requests are authenticated using JwtFilter
-8. Access is granted based on user roles
+### Login
+1. User sends credentials to `/auth/login`
+2. AuthenticationManager validates credentials
+3. Access + Refresh tokens generated
+4. Tokens returned to client
 
---------------------------------------------------
+---
 
-## 👤 Roles
+### Authenticated Requests
+1. Client sends Access Token:
 
-Two roles are supported:
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+```
 
-ROLE_USER  
-ROLE_ADMIN
+2. JwtFilter:
+    - Validates token signature
+    - Checks blacklist
+    - Loads user details
+    - Sets SecurityContext
 
-Security rules:
+---
 
-/auth/**   -> Public  
-/user/**   -> USER or ADMIN  
+### Refresh Token
+1. Client sends Refresh Token to `/auth/refresh`
+2. Service validates refresh token
+3. Generates new Access Token
+4. Returns new Access Token
+
+---
+
+### Logout
+1. Client sends Access Token to `/auth/logout`
+2. Token added to blacklist
+3. Future use of token is rejected
+
+---
+
+## 👤 Supported Roles
+
+- ROLE_USER
+- ROLE_ADMIN
+
+### Security Rules
+
+```text
+/auth/**   -> Public
+/user/**   -> USER or ADMIN
 /admin/**  -> ADMIN only
+```
 
---------------------------------------------------
+---
 
 ## 📡 API Endpoints
 
-### Register User
+### Register
 
+```http
 POST /auth/register
+```
 
-Request
+#### Request
 
+```json
 {
-"email": "user@example.com",
-"password": "password123",
-"role": "ROLE_USER"
+  "email": "user@example.com",
+  "password": "password123",
+  "roles": ["USER"]
 }
+```
 
-Response
+#### Response
 
+```json
 {
-"token": "jwt_token_here"
+  "accessToken": "jwt-access-token",
+  "refreshToken": "jwt-refresh-token",
+  "tokenType": "Bearer",
+  "expiresIn": 900000,
+  "email": "user@example.com"
 }
+```
 
---------------------------------------------------
+---
 
 ### Login
 
+```http
 POST /auth/login
+```
 
-Request
+#### Request
 
+```json
 {
-"email": "user@example.com",
-"password": "password123"
+  "email": "user@example.com",
+  "password": "password123"
 }
+```
 
-Response
+---
 
+### Refresh Token
+
+```http
+POST /auth/refresh
+```
+
+#### Request
+
+```json
 {
-"token": "jwt_token_here"
+  "refreshToken": "jwt-refresh-token"
 }
+```
 
---------------------------------------------------
+---
 
-## 🔑 JWT Token
+### Logout
 
-JWT contains:
+```http
+POST /auth/logout
+```
 
-- User email
-- User role
-- Issued time
-- Expiration time
+#### Header
 
-Token validity: 24 hours
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+```
 
-Clients must include the token in request headers:
+---
 
-Authorization: Bearer <JWT_TOKEN>
+## 🔑 JWT Claims
 
---------------------------------------------------
+JWT Tokens include:
 
-## 🔒 Role-Based Access Testing
+- Subject (Email)
+- Roles
+- Token Type (ACCESS / REFRESH)
+- Issued At
+- Expiration Time
 
-Example protected endpoints:
+---
 
-GET /admin/test  
-GET /user/test
+## ⏱ Token Expiration
 
-Access Rules:
+- Access Token: Configurable (Default: 15 Minutes)
+- Refresh Token: Configurable (Default: 7 Days)
 
-/admin/test -> ADMIN only  
-/user/test -> USER or ADMIN
-
---------------------------------------------------
+---
 
 ## 📊 Monitoring
 
-Application health monitoring is available using Spring Boot Actuator.
+### Health Check
 
+```http
 GET /actuator/health
+```
 
-Example response:
+#### Example Response
 
+```json
 {
-"status": "UP"
+  "status": "UP"
 }
+```
 
---------------------------------------------------
+---
 
 ## 📘 API Documentation
 
-Interactive API documentation is available using Swagger UI.
+Swagger UI:
 
+```text
 http://localhost:8080/swagger-ui/index.html
+```
 
-OpenAPI JSON specification:
+OpenAPI JSON:
 
+```text
 /v3/api-docs
+```
 
---------------------------------------------------
-
-## 👥 Default Users (Created at Startup)
-
-The application automatically creates default users on startup.
-
-admin@example.com  
-Password: admin123  
-Role: ROLE_ADMIN
-
-user@example.com  
-Password: user123  
-Role: ROLE_USER
-
-These users are created only if they do not already exist.
-
---------------------------------------------------
+---
 
 ## ▶️ Running the Project
 
-Clone the repository
+### Clone Repository
 
-git clone https://github.com/yourusername/ecommerce-auth-service.git
+```bash
+git clone https://github.com/ekanath-smr/ecommerce-auth-service.git
+```
 
-Navigate to the project
+### Navigate
 
+```bash
 cd ecommerce-auth-service
+```
 
-Run the application
+### Run Application
 
+```bash
 mvn spring-boot:run
+```
 
---------------------------------------------------
+---
+
+## 🧪 Testing
+
+Run Unit Tests:
+
+```bash
+mvn test
+```
+
+Includes unit tests for:
+
+- Registration Flow
+- Login Flow
+- Invalid Credentials
+- Role Validation
+- Logout / Blacklisting
+- Token Validation
+
+---
+
+## ⚠️ Current Limitation
+
+Token blacklist is currently implemented using **in-memory storage**:
+
+```text
+ConcurrentHashMap / ConcurrentHashSet
+```
+
+### Production Recommendation
+
+Use **Redis with TTL** for distributed scalable token revocation.
+
+---
 
 ## 📌 Future Improvements
 
+- Redis-based Token Blacklisting
 - API Gateway Integration
-- Refresh Token Implementation
-- Email Verification
 - OAuth2 / Social Login
+- Email Verification
 - Rate Limiting
-- Redis Token Blacklisting
+- Refresh Token Rotation
+- Device/Session Management
+- Distributed Tracing / Metrics
 
---------------------------------------------------
+---
 
 ## 👨‍💻 Author
 
-Ekanath S M R
+**Ekanath S M R**
 
-Backend Developer | Java | Spring Boot | Microservices
+Backend Developer  
+Java | Spring Boot | Microservices
