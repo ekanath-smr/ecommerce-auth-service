@@ -275,7 +275,7 @@ GET /actuator/health
 Swagger UI:
 
 ```text
-http://localhost:8080/swagger-ui/index.html
+http://localhost:9000/swagger-ui/index.html
 ```
 
 OpenAPI JSON:
