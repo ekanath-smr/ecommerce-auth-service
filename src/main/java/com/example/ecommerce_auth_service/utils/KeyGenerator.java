@@ -9,7 +9,6 @@ public class KeyGenerator {
         String secret = Encoders.BASE64.encode(
                 Keys.secretKeyFor(SignatureAlgorithm.HS256).getEncoded()
         );
-
         System.out.println(secret);
     }
 }

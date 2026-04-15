@@ -1,8 +1,10 @@
 package com.example.ecommerce_auth_service.advices;
 
+import com.example.ecommerce_auth_service.dtos.ApiError;
 import com.example.ecommerce_auth_service.exceptions.InvalidCredentialsException;
 import com.example.ecommerce_auth_service.exceptions.InvalidRoleException;
 import com.example.ecommerce_auth_service.exceptions.UserAlreadyExistsException;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,129 +15,137 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     // ================= VALIDATION =================
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
-            MethodArgumentNotValidException ex
-    ) {
+    public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex) {
+
         String errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
+        log.warn("Validation error: {}", errors);
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Validation Failed",
-                errors
+                errors,
+                "/api"
         );
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(
-            ConstraintViolationException ex
-    ) {
+    public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex) {
+
+        log.warn("Constraint violation: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Constraint Violation",
-                ex.getMessage()
+                ex.getMessage(),
+                "/api"
         );
     }
 
     // ================= AUTH / SECURITY =================
 
     @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(
-            InvalidCredentialsException ex
-    ) {
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
+
+        log.warn("Invalid credentials: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.UNAUTHORIZED,
                 "Invalid Credentials",
-                ex.getMessage()
+                ex.getMessage(),
+                "/auth"
         );
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(
-            BadCredentialsException ex
-    ) {
+    public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex) {
+
+        log.warn("Bad credentials: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.UNAUTHORIZED,
                 "Authentication Failed",
-                ex.getMessage()
+                "Invalid username or password",
+                "/auth"
         );
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDenied(
-            AccessDeniedException ex
-    ) {
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
+
+        log.warn("Access denied: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.FORBIDDEN,
                 "Access Denied",
-                ex.getMessage()
+                "You do not have permission to access this resource",
+                "/api"
         );
     }
 
     // ================= BUSINESS EXCEPTIONS =================
 
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleUserAlreadyExists(
-            UserAlreadyExistsException ex
-    ) {
+    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+
+        log.warn("User already exists: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.CONFLICT,
                 "User Already Exists",
-                ex.getMessage()
+                ex.getMessage(),
+                "/auth"
         );
     }
 
     @ExceptionHandler(InvalidRoleException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidRole(
-            InvalidRoleException ex
-    ) {
+    public ResponseEntity<ApiError> handleInvalidRole(InvalidRoleException ex) {
+
+        log.warn("Invalid role: {}", ex.getMessage());
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Invalid Role",
-                ex.getMessage()
+                ex.getMessage(),
+                "/auth"
         );
     }
 
     // ================= FALLBACK =================
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(
-            Exception ex
-    ) {
+    public ResponseEntity<ApiError> handleGenericException(Exception ex) {
+
+        log.error("Unexpected error occurred", ex);
+
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",
-                ex.getMessage()
+                "Something went wrong",
+                "/api"
         );
     }
 
     // ================= HELPER =================
 
-    private ResponseEntity<Map<String, Object>> buildResponse(
-            HttpStatus status,
-            String error,
-            String message
-    ) {
-        Map<String, Object> body = new LinkedHashMap<>();
-
-        body.put("timestamp", Instant.now());
-        body.put("status", status.value());
-        body.put("error", error);
-        body.put("message", message);
-
-        return new ResponseEntity<>(body, status);
+    private ResponseEntity<ApiError> buildResponse(HttpStatus status, String error, String message, String path) {
+        ApiError apiError = new ApiError(
+                Instant.now(), status.value(),
+                error, message, path
+        );
+        return new ResponseEntity<>(apiError, status);
     }
 }

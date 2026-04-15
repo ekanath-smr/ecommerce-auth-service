@@ -1,19 +1,20 @@
 package com.example.ecommerce_auth_service.security;
 
+import com.example.ecommerce_auth_service.dtos.ApiError;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Component
+@Slf4j
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
@@ -24,18 +25,22 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException authException) throws IOException, ServletException {
+                         AuthenticationException ex) throws IOException, ServletException {
+
+        log.warn("Unauthorized access to [{}] : {}", request.getRequestURI(), ex.getMessage());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", Instant.now().toString());
-        body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
-        body.put("error", "Unauthorized");
-        body.put("message", "Authentication required or token is invalid");
-        body.put("path", request.getRequestURI());
+        ApiError error = new ApiError(
+                Instant.now(),
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Unauthorized",
+                "Authentication required or token is invalid",
+                request.getRequestURI()
+        );
 
-        response.getWriter().write(objectMapper.writeValueAsString(body));
+        objectMapper.writeValue(response.getWriter(), error);
     }
 }

@@ -1,19 +1,20 @@
 package com.example.ecommerce_auth_service.security;
 
+import com.example.ecommerce_auth_service.dtos.ApiError;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Component
+@Slf4j
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
@@ -23,19 +24,21 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     }
 
     @Override
-    public void handle(HttpServletRequest request, HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException, ServletException {
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex) throws IOException, ServletException {
+        log.warn("Forbidden access to [{}] : {}", request.getRequestURI(), ex.getMessage());
 
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", Instant.now().toString());
-        body.put("status", HttpServletResponse.SC_FORBIDDEN);
-        body.put("error", "Forbidden");
-        body.put("message", "You do not have permission to access this resource");
-        body.put("path", request.getRequestURI());
+        ApiError error = new ApiError(
+                Instant.now(),
+                HttpServletResponse.SC_FORBIDDEN,
+                "Forbidden",
+                "You do not have permission to access this resource",
+                request.getRequestURI()
+        );
 
-        response.getWriter().write(objectMapper.writeValueAsString(body));
+        objectMapper.writeValue(response.getWriter(), error);
     }
 }

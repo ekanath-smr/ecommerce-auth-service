@@ -25,11 +25,7 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
-    public SecurityConfig(
-            JwtFilter jwtFilter,
-            CustomAccessDeniedHandler accessDeniedHandler,
-            CustomAuthenticationEntryPoint authenticationEntryPoint
-    ) {
+    public SecurityConfig(JwtFilter jwtFilter, CustomAccessDeniedHandler accessDeniedHandler, CustomAuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtFilter = jwtFilter;
         this.accessDeniedHandler = accessDeniedHandler;
         this.authenticationEntryPoint = authenticationEntryPoint;
@@ -41,32 +37,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config
-    ) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder
-    ) {
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider();
-
+    public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
-
         return provider;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            AuthenticationProvider authenticationProvider
-    ) throws Exception {
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
@@ -93,7 +77,6 @@ public class SecurityConfig {
                         jwtFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
-
         return http.build();
     }
 }

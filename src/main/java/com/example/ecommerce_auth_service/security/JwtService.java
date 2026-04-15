@@ -46,9 +46,7 @@ public class JwtService {
         return buildToken(userDetails, refreshTokenExpiration, "REFRESH");
     }
 
-    private String buildToken(UserDetails userDetails,
-                              long expiration,
-                              String tokenType) {
+    private String buildToken(UserDetails userDetails, long expiration, String tokenType) {
 
         Map<String, Object> claims = new HashMap<>();
 
@@ -57,6 +55,7 @@ public class JwtService {
                 userDetails.getAuthorities()
                         .stream()
                         .map(GrantedAuthority::getAuthority)
+                        .map(role -> role.startsWith("ROLE_") ? role.substring(5) : role)
                         .collect(Collectors.toList())
         );
 
@@ -78,7 +77,11 @@ public class JwtService {
     }
 
     public List<String> extractRoles(String token) {
-        return extractClaim(token, claims -> claims.get("roles", List.class));
+        Object roles = extractClaim(token, claims -> claims.get("roles"));
+        if (roles instanceof List<?> roleList) {
+            return roleList.stream().map(Object::toString).toList();
+        }
+        return List.of();
     }
 
     public String extractTokenType(String token) {
@@ -89,22 +92,16 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    public <T> T extractClaim(String token,
-                              Function<Claims, T> claimsResolver) {
-
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
     // ================= VALIDATION =================
 
-    public boolean isTokenValid(String token,
-                                UserDetails userDetails) {
-
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         String username = extractUsername(token);
-
-        return username.equals(userDetails.getUsername())
-                && !isTokenExpired(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
     public boolean isRefreshToken(String token) {

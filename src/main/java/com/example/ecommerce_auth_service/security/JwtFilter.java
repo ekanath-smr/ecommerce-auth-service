@@ -27,8 +27,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtFilter(JwtService jwtService, UserDetailsService userDetailsService,
-            TokenBlacklistService tokenBlacklistService) {
+    public JwtFilter(JwtService jwtService, UserDetailsService userDetailsService, TokenBlacklistService tokenBlacklistService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.tokenBlacklistService = tokenBlacklistService;
