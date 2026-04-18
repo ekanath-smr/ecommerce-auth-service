@@ -15,7 +15,7 @@ public class TestController {
         return "Admin access granted";
     }
 
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/user")
     public String userEndpoint() {
         return "User access granted";

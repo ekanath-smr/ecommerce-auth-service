@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,8 +79,8 @@ public class AuthServiceImpl implements AuthService {
 //        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
         UserDetails userDetails = new CustomUserDetails(user);
 
-        String accessToken = jwtService.generateToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        String refreshToken = jwtService.generateRefreshToken(userDetails, user.getId());
 
         return AuthResponseDto.builder()
                 .accessToken(accessToken)
@@ -95,11 +96,12 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponseDto login(LoginRequestDto dto) {
 
         String email = normalizeEmail(dto.getEmail());
-
+        User user;
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, dto.getPassword())
             );
+            user = userRepository.findByEmail(dto.getEmail()).get();
         } catch (AuthenticationException ex) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
@@ -107,8 +109,8 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 //        UserDetails userDetails = new CustomUserDetails(user);
 
-        String accessToken = jwtService.generateToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        String refreshToken = jwtService.generateRefreshToken(userDetails, user.getId());
 
         return AuthResponseDto.builder()
                 .accessToken(accessToken)
@@ -130,13 +132,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        User user = userRepository.findByEmail(email).get();
 
         if (!jwtService.isTokenValid(refreshToken, userDetails) || !jwtService.isRefreshToken(refreshToken)) {
             throw new InvalidCredentialsException("Invalid refresh token");
         }
 
-        String newAccessToken = jwtService.generateToken(userDetails);
-        String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+        String newAccessToken = jwtService.generateToken(userDetails, user.getId());
+        String newRefreshToken = jwtService.generateRefreshToken(userDetails, user.getId());
 
         return AuthResponseDto.builder()
                 .accessToken(newAccessToken)

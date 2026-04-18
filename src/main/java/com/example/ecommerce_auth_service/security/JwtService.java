@@ -38,17 +38,19 @@ public class JwtService {
 
     // ================= TOKEN GENERATION =================
 
-    public String generateToken(UserDetails userDetails) {
-        return buildToken(userDetails, accessTokenExpiration, "ACCESS");
+    public String generateToken(UserDetails userDetails, Long userId) {
+        return buildToken(userDetails, userId, accessTokenExpiration, "ACCESS");
     }
 
-    public String generateRefreshToken(UserDetails userDetails) {
-        return buildToken(userDetails, refreshTokenExpiration, "REFRESH");
+    public String generateRefreshToken(UserDetails userDetails, Long userId) {
+        return buildToken(userDetails, userId, refreshTokenExpiration, "REFRESH");
     }
 
-    private String buildToken(UserDetails userDetails, long expiration, String tokenType) {
+    private String buildToken(UserDetails userDetails, Long userId, long expiration, String tokenType) {
 
         Map<String, Object> claims = new HashMap<>();
+
+        claims.put("uid", userId);
 
         claims.put(
                 "roles",
@@ -62,6 +64,7 @@ public class JwtService {
         claims.put("tokenType", tokenType);
 
         return Jwts.builder()
+//                .setId(userId.toString())
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())

@@ -71,8 +71,8 @@ class AuthServiceImplTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(userRole));
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
-        when(jwtService.generateToken(any())).thenReturn("access-token");
-        when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
+        when(jwtService.generateToken(any(), any())).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(any(), any())).thenReturn("refresh-token");
         when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
 
         AuthResponseDto response = authService.register(request);
@@ -134,8 +134,8 @@ class AuthServiceImplTest {
         when(userDetailsService.loadUserByUsername("test@example.com"))
                 .thenReturn(new CustomUserDetails(user));
 
-        when(jwtService.generateToken(any())).thenReturn("access-token");
-        when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
+        when(jwtService.generateToken(any(), any())).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(any(), any())).thenReturn("refresh-token");
         when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
 
         AuthResponseDto response = authService.login(request);

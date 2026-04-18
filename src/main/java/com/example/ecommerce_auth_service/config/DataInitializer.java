@@ -43,6 +43,16 @@ public class DataInitializer {
                         .build();
                 userRepository.save(admin);
             }
+
+            // 4. Create USER+ADMIN
+            if (!userRepository.existsByEmail("smrekanath@gmail.com")) {
+                User testUser = User.builder()
+                        .email("smrekanath@gmail.com")
+                        .password(passwordEncoder.encode("smrekanath"))
+                        .roles(Set.of(userRole, adminRole))
+                        .build();
+                userRepository.save(testUser);
+            }
         };
     }
 }
