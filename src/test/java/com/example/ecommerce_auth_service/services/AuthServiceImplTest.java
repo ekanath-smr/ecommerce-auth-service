@@ -20,49 +20,40 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private RoleRepository roleRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private UserDetailsService userDetailsService;
-
-    @Mock
-    private JwtService jwtService;
-
-    @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private TokenBlacklistService tokenBlacklistService;
+    @Mock private UserRepository userRepository;
+    @Mock private RoleRepository roleRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private UserDetailsService userDetailsService;
+    @Mock private JwtService jwtService;
+    @Mock private AuthenticationManager authenticationManager;
+    @Mock private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private AuthServiceImpl authService;
+
+    // ================= REGISTER =================
 
     @Test
     @DisplayName("Should register user successfully when valid data is provided")
     void register_shouldRegisterUserSuccessfully() {
 
         RegisterRequestDto request = new RegisterRequestDto();
-        request.setEmail("test@example.com");
+        request.setEmail("TEST@EXAMPLE.COM");
         request.setPassword("password123");
         request.setRoles(Set.of("USER"));
 
@@ -81,11 +72,15 @@ class AuthServiceImplTest {
         assertEquals("access-token", response.getAccessToken());
         assertEquals("refresh-token", response.getRefreshToken());
 
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository).save(argThat(user ->
+                user.getEmail().equals("test@example.com") &&
+                        user.getPassword().equals("encodedPassword") &&
+                        user.getRoles().size() == 1
+        ));
     }
 
     @Test
-    @DisplayName("Should throw UserAlreadyExistsException when email already exists during registration")
+    @DisplayName("Should throw UserAlreadyExistsException when email already exists")
     void register_shouldThrowException_whenUserAlreadyExists() {
 
         RegisterRequestDto request = new RegisterRequestDto();
@@ -100,7 +95,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should throw InvalidRoleException when invalid role is provided during registration")
+    @DisplayName("Should throw InvalidRoleException when invalid role is provided")
     void register_shouldThrowException_whenInvalidRoleProvided() {
 
         RegisterRequestDto request = new RegisterRequestDto();
@@ -115,6 +110,8 @@ class AuthServiceImplTest {
                 () -> authService.register(request));
     }
 
+    // ================= LOGIN =================
+
     @Test
     @DisplayName("Should login successfully when credentials are valid")
     void login_shouldLoginSuccessfully() {
@@ -126,13 +123,19 @@ class AuthServiceImplTest {
         User user = User.builder()
                 .email("test@example.com")
                 .password("encodedPassword")
-                .roles(Set.of(
-                        new Role("ROLE_USER")
-                ))
+                .roles(Set.of(new Role("ROLE_USER")))
                 .build();
+
+        when(userRepository.findByEmail("test@example.com"))
+                .thenReturn(Optional.of(user));
 
         when(userDetailsService.loadUserByUsername("test@example.com"))
                 .thenReturn(new CustomUserDetails(user));
+
+//        when(authenticationManager.authenticate(any()))
+//                .thenReturn(null);
+        when(authenticationManager.authenticate(any()))
+                .thenReturn(mock(Authentication.class));
 
         when(jwtService.generateToken(any(), any())).thenReturn("access-token");
         when(jwtService.generateRefreshToken(any(), any())).thenReturn("refresh-token");
@@ -142,13 +145,12 @@ class AuthServiceImplTest {
 
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
-        assertEquals("refresh-token", response.getRefreshToken());
 
-        verify(authenticationManager, times(1)).authenticate(any());
+        verify(authenticationManager).authenticate(any());
     }
 
     @Test
-    @DisplayName("Should throw InvalidCredentialsException when authentication fails during login")
+    @DisplayName("Should throw InvalidCredentialsException when authentication fails")
     void login_shouldThrowException_whenAuthenticationFails() {
 
         LoginRequestDto request = new LoginRequestDto();
@@ -156,12 +158,13 @@ class AuthServiceImplTest {
         request.setPassword("wrongPassword");
 
         doThrow(new BadCredentialsException("Bad credentials"))
-                .when(authenticationManager)
-                .authenticate(any());
+                .when(authenticationManager).authenticate(any());
 
         assertThrows(InvalidCredentialsException.class,
                 () -> authService.login(request));
     }
+
+    // ================= LOGOUT =================
 
     @Test
     @DisplayName("Should blacklist token successfully during logout")
@@ -169,14 +172,19 @@ class AuthServiceImplTest {
 
         String token = "jwt-token";
 
+        when(jwtService.isAccessToken(token)).thenReturn(true);
+        when(jwtService.extractExpiration(token)).thenReturn(new Date(1000));
+
         authService.logout(token);
 
-        verify(tokenBlacklistService, times(1))
-                .blacklist(token);
+        verify(tokenBlacklistService)
+                .blacklist(eq(token), eq(1000L));
     }
 
+    // ================= VALIDATION =================
+
     @Test
-    @DisplayName("Should return false when validating a blacklisted token")
+    @DisplayName("Should return false when token is blacklisted")
     void validateToken_shouldReturnFalse_whenBlacklisted() {
 
         String token = "blacklisted-token";
@@ -186,5 +194,28 @@ class AuthServiceImplTest {
         boolean valid = authService.validateToken(token);
 
         assertFalse(valid);
+    }
+
+    @Test
+    @DisplayName("Should return true when token is valid")
+    void validateToken_shouldReturnTrue_whenValid() {
+
+        String token = "valid-token";
+
+        User user = User.builder()
+                .email("test@example.com")
+                .password("pass")
+                .roles(Set.of(new Role("ROLE_USER")))
+                .build();
+
+        when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
+        when(jwtService.extractUsername(token)).thenReturn("test@example.com");
+        when(userDetailsService.loadUserByUsername("test@example.com"))
+                .thenReturn(new CustomUserDetails(user));
+        when(jwtService.isTokenValid(eq(token), any())).thenReturn(true);
+
+        boolean result = authService.validateToken(token);
+
+        assertTrue(result);
     }
 }

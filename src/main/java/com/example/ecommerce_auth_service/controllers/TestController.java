@@ -1,20 +1,32 @@
 package com.example.ecommerce_auth_service.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/test")
+@Tag(name = "Test APIs", description = "Endpoints to test role-based access control")
 public class TestController {
 
+    @Operation(
+            summary = "Admin-only endpoint",
+            description = "Accessible only by users with ADMIN role",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin")
     public String adminEndpoint() {
         return "Admin access granted";
     }
 
+    @Operation(
+            summary = "User-only endpoint",
+            description = "Accessible only by users with USER role",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/user")
     public String userEndpoint() {

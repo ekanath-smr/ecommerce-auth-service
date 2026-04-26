@@ -1,6 +1,6 @@
 # Ecommerce Auth Service
 
-A production-style JWT Authentication & Authorization Microservice built using Spring Boot and Spring Security for an e-commerce microservices backend.
+A production-style JWT Authentication & Authorization Microservice built using Spring Boot and Spring Security for an e-commerce backend.
 
 Provides secure user registration, login, refresh token handling, logout with token blacklisting, and role-based access control for downstream services.
 
@@ -26,6 +26,22 @@ Provides secure user registration, login, refresh token handling, logout with to
 
 ---
 
+## 🧠 Architecture Overview
+
+This service is designed as a stateless authentication microservice.
+
+- Follows layered architecture (Controller → Service → Repository)
+- Stateless JWT-based authentication (no session storage)
+- Token revocation handled via blacklist
+- Designed to integrate with API Gateway for centralized authentication
+- Horizontally scalable (except in-memory blacklist limitation)
+
+### High-Level Flow
+
+Client → API Gateway → Auth Service → Downstream Services
+
+---
+
 ## 🏗️ Tech Stack
 
 - Java 17+
@@ -45,7 +61,6 @@ Provides secure user registration, login, refresh token handling, logout with to
 
 ## 📂 Project Structure
 
-```text
 ecommerce-auth-service
 │
 ├── controllers
@@ -85,14 +100,14 @@ ecommerce-auth-service
 │   └── InvalidRoleException
 │
 └── advices
-    └── GlobalExceptionHandler
-```
+└── GlobalExceptionHandler
 
 ---
 
 ## 🔐 Authentication Flow
 
 ### Registration
+
 1. User sends request to `/auth/register`
 2. Password is encrypted using BCrypt
 3. Roles are validated and assigned
@@ -102,6 +117,7 @@ ecommerce-auth-service
 ---
 
 ### Login
+
 1. User sends credentials to `/auth/login`
 2. AuthenticationManager validates credentials
 3. Access + Refresh tokens generated
@@ -110,21 +126,21 @@ ecommerce-auth-service
 ---
 
 ### Authenticated Requests
-1. Client sends Access Token:
 
-```http
+Client sends Access Token:
+
 Authorization: Bearer <ACCESS_TOKEN>
-```
 
-2. JwtFilter:
-    - Validates token signature
-    - Checks blacklist
-    - Loads user details
-    - Sets SecurityContext
+JwtFilter:
+- Validates token signature
+- Checks blacklist
+- Loads user details
+- Sets SecurityContext
 
 ---
 
 ### Refresh Token
+
 1. Client sends Refresh Token to `/auth/refresh`
 2. Service validates refresh token
 3. Generates new Access Token
@@ -133,9 +149,22 @@ Authorization: Bearer <ACCESS_TOKEN>
 ---
 
 ### Logout
+
 1. Client sends Access Token to `/auth/logout`
 2. Token added to blacklist
 3. Future use of token is rejected
+
+---
+
+## 🔄 Authentication Sequence
+
+### Login Flow
+
+Client → AuthController → AuthenticationManager → UserDetailsService → JWT Generation → Client
+
+### Request Flow
+
+Client → JwtFilter → Token Validation → SecurityContext → Controller
 
 ---
 
@@ -146,11 +175,9 @@ Authorization: Bearer <ACCESS_TOKEN>
 
 ### Security Rules
 
-```text
-/auth/**   -> Public
-/user/**   -> USER or ADMIN
+/auth/**   -> Public  
+/user/**   -> USER or ADMIN  
 /admin/**  -> ADMIN only
-```
 
 ---
 
@@ -158,78 +185,42 @@ Authorization: Bearer <ACCESS_TOKEN>
 
 ### Register
 
-```http
 POST /auth/register
-```
 
-#### Request
-
-```json
 {
-  "email": "user@example.com",
-  "password": "password123",
-  "roles": ["USER"]
+"email": "user@example.com",
+"password": "password123",
+"roles": ["USER"]
 }
-```
-
-#### Response
-
-```json
-{
-  "accessToken": "jwt-access-token",
-  "refreshToken": "jwt-refresh-token",
-  "tokenType": "Bearer",
-  "expiresIn": 900000,
-  "email": "user@example.com"
-}
-```
 
 ---
 
 ### Login
 
-```http
 POST /auth/login
-```
 
-#### Request
-
-```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+"email": "user@example.com",
+"password": "password123"
 }
-```
 
 ---
 
 ### Refresh Token
 
-```http
 POST /auth/refresh
-```
 
-#### Request
-
-```json
 {
-  "refreshToken": "jwt-refresh-token"
+"refreshToken": "jwt-refresh-token"
 }
-```
 
 ---
 
 ### Logout
 
-```http
 POST /auth/logout
-```
 
-#### Header
-
-```http
 Authorization: Bearer <ACCESS_TOKEN>
-```
 
 ---
 
@@ -247,8 +238,29 @@ JWT Tokens include:
 
 ## ⏱ Token Expiration
 
-- Access Token: Configurable (Default: 15 Minutes)
-- Refresh Token: Configurable (Default: 7 Days)
+- Access Token: 15 Minutes (configurable)
+- Refresh Token: 7 Days (configurable)
+
+---
+
+## 🔒 Security Considerations
+
+- Passwords hashed using BCrypt
+- JWT signed with HMAC SHA-256
+- Role-based authorization enforced via Spring Security
+- Access vs Refresh token separation
+- Token blacklist prevents reuse after logout
+- Input validation using Jakarta Validation
+- Method-level security using @PreAuthorize
+
+---
+
+## ⚖️ Design Tradeoffs
+
+- In-memory blacklist is fast but not scalable across instances
+- JWT is stateless but requires explicit revocation strategy
+- Refresh token reuse vs rotation (currently reuse for simplicity)
+- Roles embedded in token reduce DB calls but need reissue on role change
 
 ---
 
@@ -256,17 +268,11 @@ JWT Tokens include:
 
 ### Health Check
 
-```http
 GET /actuator/health
-```
 
-#### Example Response
-
-```json
 {
-  "status": "UP"
+"status": "UP"
 }
-```
 
 ---
 
@@ -274,15 +280,11 @@ GET /actuator/health
 
 Swagger UI:
 
-```text
 http://localhost:9000/swagger-ui/index.html
-```
 
-OpenAPI JSON:
-
-```text
-/v3/api-docs
-```
+- Supports JWT authentication via Authorize button
+- All secured endpoints require Bearer token
+- Includes request/response schemas
 
 ---
 
@@ -290,21 +292,15 @@ OpenAPI JSON:
 
 ### Clone Repository
 
-```bash
 git clone https://github.com/ekanath-smr/ecommerce-auth-service.git
-```
 
 ### Navigate
 
-```bash
 cd ecommerce-auth-service
-```
 
 ### Run Application
 
-```bash
 mvn spring-boot:run
-```
 
 ---
 
@@ -312,11 +308,9 @@ mvn spring-boot:run
 
 Run Unit Tests:
 
-```bash
 mvn test
-```
 
-Includes unit tests for:
+Includes tests for:
 
 - Registration Flow
 - Login Flow
@@ -329,15 +323,22 @@ Includes unit tests for:
 
 ## ⚠️ Current Limitation
 
-Token blacklist is currently implemented using **in-memory storage**:
+Token blacklist uses in-memory storage:
 
-```text
 ConcurrentHashMap / ConcurrentHashSet
-```
 
 ### Production Recommendation
 
-Use **Redis with TTL** for distributed scalable token revocation.
+Use Redis with TTL for scalable distributed token revocation.
+
+---
+
+## ☁️ Deployment Readiness
+
+- Can be containerized using Docker
+- Suitable for Kubernetes deployment
+- Externalized configuration via application.properties
+- Supports environment-based configs
 
 ---
 
@@ -350,13 +351,14 @@ Use **Redis with TTL** for distributed scalable token revocation.
 - Rate Limiting
 - Refresh Token Rotation
 - Device/Session Management
-- Distributed Tracing / Metrics
+- Distributed Tracing & Metrics
 
 ---
 
 ## 👨‍💻 Author
 
-**Ekanath S M R**
+Ekanath S M R
 
-Backend Developer  
-Java | Spring Boot | Microservices
+Backend Developer | Java | Spring Boot | Microservices
+
+Focused on building scalable backend systems and preparing for SDE roles.

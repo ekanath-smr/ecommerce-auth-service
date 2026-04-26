@@ -14,8 +14,8 @@ import java.util.Set;
 @Configuration
 public class DataInitializer {
     @Bean
-    CommandLineRunner initUsers(UserRepository userRepository,
-                                RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    CommandLineRunner initUsers(UserRepository userRepository, RoleRepository roleRepository,
+                                PasswordEncoder passwordEncoder) {
         return args -> {
             // 1. Create roles if not exist
             Role userRole = roleRepository.findByName("ROLE_USER")
