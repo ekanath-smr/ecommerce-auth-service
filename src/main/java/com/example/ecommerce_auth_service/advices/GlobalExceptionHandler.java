@@ -10,7 +10,9 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 // import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -79,15 +81,16 @@ public class GlobalExceptionHandler {
         );
     }
 
-//    @ExceptionHandler(AccessDeniedException.class)
-//    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
-//        log.warn("Access denied: {}", ex.getMessage());
-//        return buildResponse(
-//                HttpStatus.FORBIDDEN, "Access Denied",
-//                "You do not have permission to access this resource",
-//                "/api"
-//        );
-//    }
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    public ResponseEntity<ApiError> handleAccessDenied(Exception ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                "Access Denied",
+                "You do not have permission to access this resource",
+                "/api"
+        );
+    }
 
     // ================= BUSINESS EXCEPTIONS =================
 

@@ -7,7 +7,9 @@ import com.example.ecommerce_auth_service.dtos.RegisterRequestDto;
 import com.example.ecommerce_auth_service.exceptions.InvalidCredentialsException;
 import com.example.ecommerce_auth_service.services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -60,10 +62,14 @@ public class AuthController {
 
     // ================= LOGOUT =================
 
-    @Operation(summary = "Logout user and blacklist access token")
+    @Operation(
+            summary = "Logout user",
+            description = "Blacklist the access token",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponse(responseCode = "200", description = "Logged out successfully")
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<String> logout(@Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new InvalidCredentialsException("Invalid Authorization header");
         }
