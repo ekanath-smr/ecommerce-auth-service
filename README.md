@@ -61,46 +61,46 @@ Client → API Gateway → Auth Service → Downstream Services
 
 ## 📂 Project Structure
 
-ecommerce-auth-service
-│
-├── controllers
-│   └── AuthController
-│
-├── services
-│   ├── AuthService
-│   ├── AuthServiceImpl
-│   └── TokenBlacklistService
-│
-├── repositories
-│   ├── UserRepository
-│   └── RoleRepository
-│
-├── models
-│   ├── User
-│   └── Role
-│
-├── dtos
-│   ├── RegisterRequestDto
-│   ├── LoginRequestDto
-│   ├── RefreshTokenRequestDto
-│   └── AuthResponseDto
-│
-├── security
-│   ├── JwtService
-│   ├── JwtFilter
-│   ├── SecurityConfig
-│   ├── CustomUserDetails
-│   ├── CustomUserDetailsService
-│   ├── CustomAuthenticationEntryPoint
-│   └── CustomAccessDeniedHandler
-│
-├── exceptions
-│   ├── UserAlreadyExistsException
-│   ├── InvalidCredentialsException
-│   └── InvalidRoleException
-│
-└── advices
-└── GlobalExceptionHandler
+ecommerce-auth-service  
+│  
+├── controllers  
+│   └── AuthController  
+│  
+├── services  
+│   ├── AuthService  
+│   ├── AuthServiceImpl  
+│   └── TokenBlacklistService  
+│  
+├── repositories  
+│   ├── UserRepository  
+│   └── RoleRepository  
+│  
+├── models  
+│   ├── User  
+│   └── Role  
+│  
+├── dtos  
+│   ├── RegisterRequestDto  
+│   ├── LoginRequestDto  
+│   ├── RefreshTokenRequestDto  
+│   └── AuthResponseDto  
+│  
+├── security  
+│   ├── JwtService  
+│   ├── JwtFilter  
+│   ├── SecurityConfig  
+│   ├── CustomUserDetails  
+│   ├── CustomUserDetailsService  
+│   ├── CustomAuthenticationEntryPoint  
+│   └── CustomAccessDeniedHandler  
+│  
+├── exceptions  
+│   ├── UserAlreadyExistsException  
+│   ├── InvalidCredentialsException  
+│   └── InvalidRoleException  
+│  
+└── advices  
+└── GlobalExceptionHandler  
 
 ---
 

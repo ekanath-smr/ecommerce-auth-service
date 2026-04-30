@@ -42,6 +42,8 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        String method = request.getMethod();
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -52,17 +54,21 @@ public class JwtFilter extends OncePerRequestFilter {
         String jwt = authHeader.substring(7);
 
         try {
-            // 1. Reject blacklisted tokens
             if (tokenBlacklistService.isBlacklisted(jwt)) {
                 logger.warn("Blacklisted token used");
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // 2. Extract username
+            String tokenType = jwtService.extractTokenType(jwt);
+            if (!"ACCESS".equals(tokenType)) {
+                logger.warn("Invalid token type | method={} | path={}", method, path);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String username = jwtService.extractUsername(jwt);
 
-            // 3. Authenticate if not already authenticated
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userDetails = userDetailsService.loadUserByUsername(username);
                 if (jwtService.isTokenValid(jwt, userDetails)) {
