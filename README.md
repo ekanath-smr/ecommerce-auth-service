@@ -1,278 +1,499 @@
 # Ecommerce Auth Service
 
-A production-style JWT Authentication & Authorization Microservice built using Spring Boot and Spring Security for an e-commerce backend.
+A production-grade Authentication & Authorization Microservice built using Spring Boot and Spring Security for a distributed e-commerce platform.
 
-Provides secure user registration, login, refresh token handling, logout with token blacklisting, and role-based access control for downstream services.
+This service provides secure user registration, login, JWT-based authentication, refresh token support, logout with token blacklisting, role-based access control, and centralized authentication for downstream microservices through API Gateway integration.
 
 ---
 
 ## 🚀 Features
 
-- JWT Access Token Authentication
-- Refresh Token Support
-- Role-Based Authorization (USER / ADMIN)
-- Secure Password Hashing using BCrypt
-- Logout with Token Blacklisting
-- Stateless Spring Security Architecture
-- Custom JWT Authentication Filter
-- Custom AuthenticationEntryPoint & AccessDeniedHandler
-- Global Exception Handling
-- DTO Validation with Jakarta Validation
-- Structured Logging with SLF4J
-- Swagger / OpenAPI Documentation
-- Spring Boot Actuator Monitoring
-- Layered Clean Architecture
-- Unit Testing with JUnit 5 & Mockito
+### Authentication
+
+* JWT Access Token Authentication
+* Refresh Token Support
+* User Registration
+* User Login
+* Secure Password Hashing using BCrypt
+* Logout with Token Blacklisting
+
+### Authorization
+
+* Role-Based Access Control (RBAC)
+* USER Role Support
+* ADMIN Role Support
+* Method-Level Security using `@PreAuthorize`
+
+### Security
+
+* Stateless Spring Security Configuration
+* Custom JWT Authentication Filter
+* Custom AuthenticationEntryPoint
+* Custom AccessDeniedHandler
+* Global Exception Handling
+* DTO Validation with Jakarta Validation
+
+### Microservices Integration
+
+* Eureka Service Discovery Client
+* API Gateway Integration
+* Dynamic Service Registration
+* Client-Side Load Balancing using Spring Cloud LoadBalancer
+* Centralized Authentication for Downstream Services
+
+### Observability
+
+* Spring Boot Actuator
+* Structured Logging with SLF4J
+* Swagger/OpenAPI Documentation
+
+### Quality
+
+* Layered Architecture
+* Unit Testing with JUnit 5 & Mockito
+* Clean Separation of Concerns
 
 ---
 
 ## 🧠 Architecture Overview
 
-This service is designed as a stateless authentication microservice.
+This service acts as the centralized authentication provider within a microservices ecosystem.
 
-- Follows layered architecture (Controller → Service → Repository)
-- Stateless JWT-based authentication (no session storage)
-- Token revocation handled via blacklist
-- Designed to integrate with API Gateway for centralized authentication
-- Horizontally scalable (except in-memory blacklist limitation)
+### Responsibilities
 
-### High-Level Flow
+* Authenticate users
+* Issue JWT tokens
+* Validate user credentials
+* Enforce role-based authorization
+* Revoke tokens on logout
+* Integrate with API Gateway
+* Register with Service Discovery
 
-Client → API Gateway → Auth Service → Downstream Services
+### High-Level Architecture
+
+```text
+                         +------------------+
+                         |  API Gateway     |
+                         +--------+---------+
+                                  |
+                                  |
+                                  v
+                        +---------+---------+
+                        | Auth Service      |
+                        | (JWT Provider)    |
+                        +---------+---------+
+                                  |
+                                  |
+                                  v
+                         +--------+--------+
+                         | MySQL Database  |
+                         +-----------------+
+
+                                  ^
+                                  |
+                     Registers With Eureka
+                                  |
+                                  v
+
+                     +----------------------+
+                     | Service Discovery    |
+                     | (Eureka Server)      |
+                     +----------------------+
+```
+
+---
+
+## 🔄 Authentication Flow
+
+### Registration Flow
+
+```text
+Client
+   |
+   v
+POST /auth/register
+   |
+   v
+Validate Request
+   |
+   v
+Encrypt Password
+   |
+   v
+Assign Roles
+   |
+   v
+Generate Access Token
+Generate Refresh Token
+   |
+   v
+Return Tokens
+```
+
+---
+
+### Login Flow
+
+```text
+Client
+   |
+   v
+POST /auth/login
+   |
+   v
+AuthenticationManager
+   |
+   v
+UserDetailsService
+   |
+   v
+JWT Generation
+   |
+   v
+Return Tokens
+```
+
+---
+
+### Request Authentication Flow
+
+```text
+Client
+   |
+Bearer Token
+   |
+   v
+API Gateway
+   |
+   v
+Auth Service Validation
+   |
+   v
+JwtFilter
+   |
+   v
+SecurityContext
+   |
+   v
+Protected Resource
+```
+
+---
+
+### Logout Flow
+
+```text
+Client
+   |
+POST /auth/logout
+   |
+   v
+Extract JWT
+   |
+   v
+Blacklist Token
+   |
+   v
+Future Requests Rejected
+```
 
 ---
 
 ## 🏗️ Tech Stack
 
-- Java 17+
-- Spring Boot
-- Spring Security
-- JWT (JJWT)
-- Spring Data JPA
-- MySQL
-- Maven
-- Lombok
-- Swagger / OpenAPI
-- Spring Boot Actuator
-- JUnit 5
-- Mockito
+### Backend
+
+* Java 17+
+* Spring Boot
+* Spring Security
+* Spring Data JPA
+* Spring Validation
+
+### Security
+
+* JWT (JJWT)
+* BCrypt Password Encoder
+
+### Database
+
+* MySQL
+
+### Microservices
+
+* Spring Cloud Netflix Eureka Client
+* Spring Cloud LoadBalancer
+* Spring Cloud Gateway Integration
+
+### Documentation
+
+* Swagger/OpenAPI
+
+### Monitoring
+
+* Spring Boot Actuator
+
+### Testing
+
+* JUnit 5
+* Mockito
+
+### Build Tool
+
+* Maven
+
+### Utilities
+
+* Lombok
 
 ---
 
 ## 📂 Project Structure
 
-ecommerce-auth-service  
-│  
-├── controllers  
-│   └── AuthController  
-│  
-├── services  
-│   ├── AuthService  
-│   ├── AuthServiceImpl  
-│   └── TokenBlacklistService  
-│  
-├── repositories  
-│   ├── UserRepository  
-│   └── RoleRepository  
-│  
-├── models  
-│   ├── User  
-│   └── Role  
-│  
-├── dtos  
-│   ├── RegisterRequestDto  
-│   ├── LoginRequestDto  
-│   ├── RefreshTokenRequestDto  
-│   └── AuthResponseDto  
-│  
-├── security  
-│   ├── JwtService  
-│   ├── JwtFilter  
-│   ├── SecurityConfig  
-│   ├── CustomUserDetails  
-│   ├── CustomUserDetailsService  
-│   ├── CustomAuthenticationEntryPoint  
-│   └── CustomAccessDeniedHandler  
-│  
-├── exceptions  
-│   ├── UserAlreadyExistsException  
-│   ├── InvalidCredentialsException  
-│   └── InvalidRoleException  
-│  
-└── advices  
-└── GlobalExceptionHandler  
-
----
-
-## 🔐 Authentication Flow
-
-### Registration
-
-1. User sends request to `/auth/register`
-2. Password is encrypted using BCrypt
-3. Roles are validated and assigned
-4. Access + Refresh tokens are generated
-5. Tokens returned to client
-
----
-
-### Login
-
-1. User sends credentials to `/auth/login`
-2. AuthenticationManager validates credentials
-3. Access + Refresh tokens generated
-4. Tokens returned to client
-
----
-
-### Authenticated Requests
-
-Client sends Access Token:
-
-Authorization: Bearer <ACCESS_TOKEN>
-
-JwtFilter:
-- Validates token signature
-- Checks blacklist
-- Loads user details
-- Sets SecurityContext
-
----
-
-### Refresh Token
-
-1. Client sends Refresh Token to `/auth/refresh`
-2. Service validates refresh token
-3. Generates new Access Token
-4. Returns new Access Token
-
----
-
-### Logout
-
-1. Client sends Access Token to `/auth/logout`
-2. Token added to blacklist
-3. Future use of token is rejected
-
----
-
-## 🔄 Authentication Sequence
-
-### Login Flow
-
-Client → AuthController → AuthenticationManager → UserDetailsService → JWT Generation → Client
-
-### Request Flow
-
-Client → JwtFilter → Token Validation → SecurityContext → Controller
+```text
+ecommerce-auth-service
+│
+├── controllers
+│   ├── AuthController
+│   └── TestController
+│
+├── services
+│   ├── AuthService
+│   ├── AuthServiceImpl
+│   └── TokenBlacklistService
+│
+├── repositories
+│   ├── UserRepository
+│   └── RoleRepository
+│
+├── models
+│   ├── User
+│   ├── Role
+│   └── BaseModel
+│
+├── dtos
+│   ├── RegisterRequestDto
+│   ├── LoginRequestDto
+│   ├── RefreshTokenRequestDto
+│   └── AuthResponseDto
+│
+├── security
+│   ├── JwtService
+│   ├── JwtFilter
+│   ├── SecurityConfig
+│   ├── CustomUserDetails
+│   ├── CustomUserDetailsService
+│   ├── CustomAuthenticationEntryPoint
+│   └── CustomAccessDeniedHandler
+│
+├── config
+│   ├── OpenApiConfig
+│   └── DiscoveryConfig
+│
+├── exceptions
+│   ├── UserAlreadyExistsException
+│   ├── InvalidCredentialsException
+│   └── InvalidRoleException
+│
+└── advices
+    └── GlobalExceptionHandler
+```
 
 ---
 
 ## 👤 Supported Roles
 
-- ROLE_USER
-- ROLE_ADMIN
+### ROLE_USER
 
-### Security Rules
+Can access:
 
-/auth/**   -> Public  
-/user/**   -> USER or ADMIN  
-/admin/**  -> ADMIN only
+```text
+/test/user
+```
+
+### ROLE_ADMIN
+
+Can access:
+
+```text
+/test/admin
+```
+
+---
+
+## 🔒 Security Rules
+
+```text
+/auth/**                 -> Public
+
+/swagger-ui/**           -> Public
+
+/v3/api-docs/**          -> Public
+
+/actuator/**             -> Public
+
+/test/user               -> ROLE_USER
+
+/test/admin              -> ROLE_ADMIN
+```
 
 ---
 
 ## 📡 API Endpoints
 
-### Register
+### Register User
 
+```http
 POST /auth/register
+```
 
+Request:
+
+```json
 {
-"email": "user@example.com",
-"password": "password123",
-"roles": ["USER"]
+  "email": "user@example.com",
+  "password": "password123",
+  "roles": ["USER"]
 }
+```
 
 ---
 
 ### Login
 
+```http
 POST /auth/login
+```
 
+Request:
+
+```json
 {
-"email": "user@example.com",
-"password": "password123"
+  "email": "user@example.com",
+  "password": "password123"
 }
+```
 
 ---
 
 ### Refresh Token
 
+```http
 POST /auth/refresh
+```
 
+Request:
+
+```json
 {
-"refreshToken": "jwt-refresh-token"
+  "refreshToken": "jwt-refresh-token"
 }
+```
 
 ---
 
 ### Logout
 
+```http
 POST /auth/logout
+```
 
+Authorization Header:
+
+```http
 Authorization: Bearer <ACCESS_TOKEN>
+```
 
 ---
 
 ## 🔑 JWT Claims
 
-JWT Tokens include:
+JWT Tokens contain:
 
-- Subject (Email)
-- Roles
-- Token Type (ACCESS / REFRESH)
-- Issued At
-- Expiration Time
+* Subject (Email)
+* Roles
+* Token Type
+* Issued Timestamp
+* Expiration Timestamp
+
+### Token Types
+
+```text
+ACCESS
+REFRESH
+```
 
 ---
 
 ## ⏱ Token Expiration
 
-- Access Token: 15 Minutes (configurable)
-- Refresh Token: 7 Days (configurable)
+| Token Type    | Default Expiration |
+| ------------- | ------------------ |
+| Access Token  | 15 Minutes         |
+| Refresh Token | 7 Days             |
 
 ---
 
-## 🔒 Security Considerations
+## 🌐 Service Discovery
 
-- Passwords hashed using BCrypt
-- JWT signed with HMAC SHA-256
-- Role-based authorization enforced via Spring Security
-- Access vs Refresh token separation
-- Token blacklist prevents reuse after logout
-- Input validation using Jakarta Validation
-- Method-level security using @PreAuthorize
+The service registers itself with Eureka Service Discovery.
+
+### Benefits
+
+* Dynamic service registration
+* Dynamic service lookup
+* No hardcoded service URLs
+* Better scalability
+* Better fault tolerance
+
+Example:
+
+```text
+AUTH-SERVICE
+```
+
+appears automatically in Eureka Dashboard.
 
 ---
 
-## ⚖️ Design Tradeoffs
+## ⚖️ Load Balancing
 
-- In-memory blacklist is fast but not scalable across instances
-- JWT is stateless but requires explicit revocation strategy
-- Refresh token reuse vs rotation (currently reuse for simplicity)
-- Roles embedded in token reduce DB calls but need reissue on role change
+This service participates in a load-balanced microservices architecture.
+
+### Supported
+
+* Client-Side Load Balancing
+* Multiple Service Instances
+* Dynamic Instance Discovery
+
+Example:
+
+```text
+PRODUCT-SERVICE
+
+Instance-1
+Instance-2
+Instance-3
+```
+
+Requests are distributed automatically using Spring Cloud LoadBalancer.
 
 ---
 
 ## 📊 Monitoring
 
-### Health Check
+### Health Endpoint
 
+```http
 GET /actuator/health
+```
 
+Example Response:
+
+```json
 {
-"status": "UP"
+  "status": "UP"
 }
+```
 
 ---
 
@@ -280,11 +501,16 @@ GET /actuator/health
 
 Swagger UI:
 
+```text
 http://localhost:9000/swagger-ui/index.html
+```
 
-- Supports JWT authentication via Authorize button
-- All secured endpoints require Bearer token
-- Includes request/response schemas
+Features:
+
+* JWT Authorization Support
+* Interactive API Testing
+* Request/Response Schemas
+* OpenAPI 3 Specification
 
 ---
 
@@ -292,73 +518,111 @@ http://localhost:9000/swagger-ui/index.html
 
 ### Clone Repository
 
+```bash
 git clone https://github.com/ekanath-smr/ecommerce-auth-service.git
+```
 
 ### Navigate
 
+```bash
 cd ecommerce-auth-service
+```
 
 ### Run Application
 
+```bash
 mvn spring-boot:run
+```
 
 ---
 
 ## 🧪 Testing
 
-Run Unit Tests:
+Run Tests
 
+```bash
 mvn test
+```
 
-Includes tests for:
+Coverage Includes:
 
-- Registration Flow
-- Login Flow
-- Invalid Credentials
-- Role Validation
-- Logout / Blacklisting
-- Token Validation
+* Registration Flow
+* Login Flow
+* Invalid Credentials
+* Role Validation
+* Logout Flow
+* Token Blacklisting
+* Token Validation
+
+---
+
+## 🔒 Security Considerations
+
+* BCrypt Password Hashing
+* JWT Signature Verification
+* Stateless Authentication
+* Role-Based Authorization
+* Token Blacklisting
+* Request Validation
+* Custom Security Handlers
+* Method-Level Access Control
 
 ---
 
 ## ⚠️ Current Limitation
 
-Token blacklist uses in-memory storage:
+Token blacklist currently uses:
 
-ConcurrentHashMap / ConcurrentHashSet
+```text
+ConcurrentHashMap
+```
+
+This works for a single application instance but is not shared across multiple instances.
 
 ### Production Recommendation
 
-Use Redis with TTL for scalable distributed token revocation.
+Use:
+
+```text
+Redis + TTL
+```
+
+for distributed token revocation.
 
 ---
 
 ## ☁️ Deployment Readiness
 
-- Can be containerized using Docker
-- Suitable for Kubernetes deployment
-- Externalized configuration via application.properties
-- Supports environment-based configs
+* Docker Friendly
+* Kubernetes Friendly
+* Environment-Based Configuration
+* Horizontally Scalable
+* Eureka Service Discovery Enabled
+* API Gateway Compatible
+* Cloud-Native Architecture
 
 ---
 
 ## 📌 Future Improvements
 
-- Redis-based Token Blacklisting
-- API Gateway Integration
-- OAuth2 / Social Login
-- Email Verification
-- Rate Limiting
-- Refresh Token Rotation
-- Device/Session Management
-- Distributed Tracing & Metrics
+* Redis-based Token Blacklisting
+* Refresh Token Rotation
+* OAuth2 Login
+* Google Login
+* GitHub Login
+* Email Verification
+* Password Reset Flow
+* Rate Limiting
+* Distributed Tracing
+* Metrics Dashboard
+* Session Management
 
 ---
 
 ## 👨‍💻 Author
 
-Ekanath S M R
+**Ekanath S M R**
 
 Backend Developer | Java | Spring Boot | Microservices
 
-Focused on building scalable backend systems and preparing for SDE roles.
+Focused on designing scalable, secure, and production-ready backend systems with distributed microservice architectures.
